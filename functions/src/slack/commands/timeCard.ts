@@ -62,7 +62,7 @@ export const useTimeCardCommand = (app: App) => {
           callback_id: VIEW_ID,
           title: {
             type: "plain_text",
-            text: "今日のもくもく"
+            text: "出勤を記録する"
           },
           blocks: [
             {
