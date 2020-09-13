@@ -1,5 +1,9 @@
 import { App } from "@slack/bolt";
 
+import { firestore } from "../../lib/firestore";
+// import { localeNow } from "../../lib/localdate";
+import { courseType } from "../../constants";
+
 const VIEW_ID = "dialog_1";
 
 type User = {
@@ -12,8 +16,8 @@ type User = {
 const createMessageBlock = (
   username: string,
   userIcon: string,
-  profile: string,
-  todo: string
+  date: string,
+  course: string
 ) => {
   return [
     {
@@ -32,7 +36,7 @@ const createMessageBlock = (
       type: "section",
       text: {
         type: "mrkdwn",
-        text: `:memo: *自己紹介*\n${profile}\n\n\n:books: *今日やること*\n${todo}`
+        text: `:calendar: *実施日*\n${date}\n\n\n:books: *コース名*\n${course}`
       },
       accessory: {
         type: "image",
@@ -46,8 +50,8 @@ const createMessageBlock = (
   ];
 };
 
-export const useTrsCommand = (app: App) => {
-  app.command("/trs", async ({ ack, body, context, command }) => {
+export const useTimeCardCommand = (app: App) => {
+  app.command("/trs_time_card", async ({ ack, body, context, command }) => {
     await ack();
     try {
       await app.client.views.open({
@@ -63,28 +67,53 @@ export const useTrsCommand = (app: App) => {
           blocks: [
             {
               type: "input",
-              block_id: "profile_block",
+              block_id: "date_block",
               label: {
                 type: "plain_text",
-                text: "自己紹介"
+                text: "実施日"
               },
               element: {
-                type: "plain_text_input",
-                action_id: "profile_input",
-                multiline: true
+                type: "datepicker",
+                action_id: "date_input",
               }
             },
             {
               type: "input",
-              block_id: "todo_block",
+              block_id: "course_block",
               label: {
                 type: "plain_text",
-                text: "今日やること"
+                text: "コース名"
               },
               element: {
-                type: "plain_text_input",
-                action_id: "todo_input",
-                multiline: true
+                type: "static_select",
+                action_id: "course_input",
+                placeholder: {
+                  type: "plain_text",
+                  text: "コースを選択してください"
+                },
+                options: [
+                  {
+                    text: {
+                      type: "plain_text",
+                      text: courseType.FOUNDATION
+                    },
+                    value: courseType.FOUNDATION
+                  },
+                  {
+                    text: {
+                      type: "plain_text",
+                      text: courseType.PRACTICAL
+                    },
+                    value: courseType.PRACTICAL
+                  },
+                  {
+                    text: {
+                      type: "plain_text",
+                      text: courseType.EXTRA
+                    },
+                    value: courseType.EXTRA
+                  }
+                ]
               }
             }
           ],
@@ -104,8 +133,8 @@ export const useTrsCommand = (app: App) => {
     await ack();
     const values = view.state.values;
     const channelId = view.private_metadata;
-    const profile = values.profile_block.profile_input.value;
-    const todo = values.todo_block.todo_input.value;
+    const date = values.date_block.date_input.selected_date;
+    const course = values.course_block.course_input.selected_option.value;
 
     try {
       // get user info
@@ -121,13 +150,19 @@ export const useTrsCommand = (app: App) => {
         blocks: createMessageBlock(
           (user as User).real_name,
           (user as User).profile.image_192,
-          profile,
-          todo
+          date,
+          course
         )
+      });
+      // save data
+      await firestore.collection("trs").add({
+        user: body.user.id,
+        user_name: (user as User).real_name,
+        date,
+        course
       });
     } catch (error) {
       console.error("post message error", error);
     }
   });
 };
-

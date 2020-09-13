@@ -1,6 +1,8 @@
 import * as functions from "firebase-functions";
 import { App, ExpressReceiver } from "@slack/bolt";
-import { useTrsCommand } from "./commands/trs";
+
+import { usePingCommand } from "../slack/commands/ping";
+import { useTimeCardCommand } from "../slack/commands/timeCard";
 
 const config = functions.config();
 
@@ -15,4 +17,5 @@ const app = new App({
   token: config.slack.token
 });
 
-useTrsCommand(app);
+usePingCommand(app);
+useTimeCardCommand(app);
