@@ -1,9 +1,10 @@
 import { App } from "@slack/bolt";
 
+import { localeNow } from "../../lib/localdate";
 import { firestore } from "../../lib/firestore";
-import { courseType } from "../../constants";
+import * as validations from "../../utils/validationUtils";
 
-const VIEW_ID = "dialog_1";
+const VIEW_ID = "dialog_2";
 
 type User = {
   real_name: string;
@@ -14,9 +15,9 @@ type User = {
 
 const createMessageBlock = (
   username: string,
-  userIcon: string,
-  date: string,
-  course: string
+  course: string,
+  place: string,
+  price: string
 ) => {
   return [
     {
@@ -35,13 +36,8 @@ const createMessageBlock = (
       type: "section",
       text: {
         type: "mrkdwn",
-        text: `:calendar: *実施日*\n${date}\n\n\n:books: *コース名*\n${course}`
+        text: `下記のコースが登録されました\n\n*コース名* ${course}\n\n*実施場所* ${place}\n\n*金額* ${price}`
       },
-      accessory: {
-        type: "image",
-        image_url: userIcon,
-        alt_text: "user thumbnail"
-      }
     },
     {
       type: "divider"
@@ -49,8 +45,8 @@ const createMessageBlock = (
   ];
 };
 
-export const useTimeCardCommand = (app: App) => {
-  app.command("/trs_time_card", async ({ ack, body, context, command }) => {
+export const useCreateCourseCommand = (app: App) => {
+  app.command("/trs_create_course", async ({ ack, body, context, command }) => {
     await ack();
     try {
       await app.client.views.open({
@@ -61,21 +57,9 @@ export const useTimeCardCommand = (app: App) => {
           callback_id: VIEW_ID,
           title: {
             type: "plain_text",
-            text: "出勤を記録する"
+            text: "コース情報登録"
           },
           blocks: [
-            {
-              type: "input",
-              block_id: "date_block",
-              label: {
-                type: "plain_text",
-                text: "実施日"
-              },
-              element: {
-                type: "datepicker",
-                action_id: "date_input",
-              }
-            },
             {
               type: "input",
               block_id: "course_block",
@@ -84,19 +68,44 @@ export const useTimeCardCommand = (app: App) => {
                 text: "コース名"
               },
               element: {
-                type: "static_select",
+                type: "plain_text_input",
                 action_id: "course_input",
                 placeholder: {
-                  type: "plain_text",
-                  text: "コースを選択してください"
-                },
-                options: Object.values(courseType).map(x => ({
-                    text: {
-                      type: "plain_text",
-                      text: x
-                    },
-                    value: x
-                  }))
+                  "type": "plain_text",
+                  "text": "基礎"
+                }
+              }
+            },
+            {
+              type: "input",
+              block_id: "place_block",
+              label: {
+                type: "plain_text",
+                text: "実施場所"
+              },
+              element: {
+                type: "plain_text_input",
+                action_id: "place_input",
+                placeholder: {
+                  "type": "plain_text",
+                  "text": "笠原教室"
+                }
+              }
+            },
+            {
+              type: "input",
+              block_id: "price_block",
+              label: {
+                type: "plain_text",
+                text: "金額"
+              },
+              element: {
+                type: "plain_text_input",
+                action_id: "price_input",
+                placeholder: {
+                  "type": "plain_text",
+                  "text": "3,000"
+                }
               }
             }
           ],
@@ -108,16 +117,18 @@ export const useTimeCardCommand = (app: App) => {
         }
       });
     } catch (error) {
-      console.error(error);
+      console.error("モーダルで発生したエラー", error);
     }
   });
 
   app.view(VIEW_ID, async ({ ack, view, context, body }) => {
     await ack();
+
     const values = view.state.values;
     const channelId = view.private_metadata;
-    const date = values.date_block.date_input.selected_date;
-    const course = values.course_block.course_input.selected_option.value;
+    const course = values.course_block.course_input.value;
+    const place = values.place_block.place_input.value;
+    const price = validations.isNumeric(values.price_block.price_input.value) ? parseInt(values.price_block.price_input.value, 10) : 0;
 
     try {
       // get user info
@@ -132,17 +143,18 @@ export const useTimeCardCommand = (app: App) => {
         text: "",
         blocks: createMessageBlock(
           (user as User).real_name,
-          (user as User).profile.image_192,
-          date,
-          course
+          course,
+          place,
+          price.toLocaleString()
         )
       });
       // save data
-      await firestore.collection("trs").add({
-        user: body.user.id,
-        user_name: (user as User).real_name,
-        date,
-        course
+      await firestore.collection("course").add({
+        course,
+        place,
+        price,
+        createdAt: localeNow().format("YYYY/MM/DD H:mm"),
+        deletedAt: ''
       });
     } catch (error) {
       console.error("post message error", error);

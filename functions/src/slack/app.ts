@@ -3,6 +3,8 @@ import { App, ExpressReceiver } from "@slack/bolt";
 
 import { usePingCommand } from "../slack/commands/ping";
 import { useTimeCardCommand } from "../slack/commands/timeCard";
+import { useCreateCourseCommand } from "../slack/commands/createCourse";
+import { useListCourseCommand } from "../slack/commands/listCourse";
 
 const config = functions.config();
 
@@ -19,3 +21,5 @@ const app = new App({
 
 usePingCommand(app);
 useTimeCardCommand(app);
+useCreateCourseCommand(app);
+useListCourseCommand(app);
