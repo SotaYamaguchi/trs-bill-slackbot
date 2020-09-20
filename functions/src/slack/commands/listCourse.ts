@@ -9,7 +9,7 @@ const getCourses = async (): Promise<Course[]> => {
     const snapShot = await firestore
       .collection("course")
       // .orderBy("createdAt", "desc")
-      // .where("deletedAt", ">", '')
+      .where("deletedAt", "<=", '')
       .get();
     snapShot.forEach(d => courses = [...courses, d.data() as Course]);
   } catch (e) {
