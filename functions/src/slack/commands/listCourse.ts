@@ -3,15 +3,15 @@ import { App } from "@slack/bolt";
 import { firestore } from "../../lib/firestore";
 import { Course } from '../../type/common';
 
-const getCourses = async () => {
+const getCourses = async (): Promise<Course[]> => {
   let courses = [] as Course[];
   try {
     const snapShot = await firestore
       .collection("course")
-      .orderBy("createdAt", "desc")
-      .where("deletedAt", ">", '')
+      // .orderBy("createdAt", "desc")
+      // .where("deletedAt", ">", '')
       .get();
-    snapShot.forEach(d => courses = [...courses, d.data() as Course ])
+    snapShot.forEach(d => courses = [...courses, d.data() as Course]);
   } catch (e) {
     console.error("get previous post error", e);
   }
@@ -23,12 +23,7 @@ export const useListCourseCommand = (app: App) => {
     await ack();
     const channelId = command.channel_id;
     try {
-    } catch (e) {
-      console.error()
-    }
-
-    try {
-      const courses = await getCourses()
+      const courses = await getCourses();
 
       // post chanel
       await app.client.chat.postMessage({
