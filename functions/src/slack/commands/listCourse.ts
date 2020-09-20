@@ -14,7 +14,7 @@ const createMessageBlock = (
       type: "section",
       text: {
         type: "mrkdwn",
-        text: courses.map(x => `${x.course} ${x.place} ${x.price.toLocaleString()}円`).join('\n\n')
+        text: courses.map(x => `・ ${x.course} ${x.place} ${x.price.toLocaleString()}円`).join('\n\n')
       },
     },
     {
