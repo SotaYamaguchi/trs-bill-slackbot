@@ -23,7 +23,7 @@ const createMessageBlock = (
   ];
 };
 
-const getCourses = async (): Promise<Course[]> => {
+const findCourses = async (): Promise<Course[]> => {
   let courses = [] as Course[];
   try {
     const snapShot = await firestore
@@ -33,7 +33,7 @@ const getCourses = async (): Promise<Course[]> => {
       .get();
     snapShot.forEach(d => courses = [...courses, d.data() as Course]);
   } catch (e) {
-    console.error("get previous post error", e);
+    console.error("find courses post error", e);
   }
   return courses;
 };
@@ -43,7 +43,7 @@ export const useListCourseCommand = (app: App) => {
     await ack();
     const channelId = command.channel_id;
     try {
-      const courses = await getCourses();
+      const courses = await findCourses();
 
       // post chanel
       await app.client.chat.postMessage({

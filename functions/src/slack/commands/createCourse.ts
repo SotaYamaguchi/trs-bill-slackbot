@@ -1,7 +1,7 @@
 import { App } from "@slack/bolt";
 
-import { localeNow } from "../../lib/localdate";
 import { firestore } from "../../lib/firestore";
+import { localeNow } from "../../utils/dateUtils";
 import * as validations from "../../utils/validationUtils";
 
 const VIEW_ID = "dialog_2";

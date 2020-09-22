@@ -3,6 +3,7 @@ import { App, ExpressReceiver } from "@slack/bolt";
 
 import { usePingCommand } from "../slack/commands/ping";
 import { useTimeCardCommand } from "../slack/commands/timeCard";
+import { useInvoiceCommand } from "../slack/commands/invoice";
 import { useCreateCourseCommand } from "../slack/commands/createCourse";
 import { useListCourseCommand } from "../slack/commands/listCourse";
 
@@ -21,5 +22,6 @@ const app = new App({
 
 usePingCommand(app);
 useTimeCardCommand(app);
+useInvoiceCommand(app);
 useCreateCourseCommand(app);
 useListCourseCommand(app);

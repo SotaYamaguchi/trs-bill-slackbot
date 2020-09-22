@@ -1,16 +1,28 @@
 import { App } from "@slack/bolt";
 
 import { firestore } from "../../lib/firestore";
-import { Course, User } from '../../type/common';
+import { Course, Work, User } from '../../type/common';
+import { formatMd, formatYYYYM } from "../../utils/dateUtils";
 
-const VIEW_ID = "dialog_1";
+const VIEW_ID = "dialog_invoice";
+
+type WorkInfo = {
+  course: string,
+  date: string[],
+  place: string,
+  price: number
+}
+
+const calcPrice = (price: number, count: number) => price * count
 
 const createMessageBlock = (
   username: string,
   userIcon: string,
-  date: string,
-  course: string
+  works: WorkInfo[],
+  date: string
 ) => {
+  const totalCount = works.map(x => x.date.length).reduce((prev, current, i, arr) => prev + current)
+  const totalPrice = works.map(x => calcPrice(x.price, x.date.length)).reduce((prev, current, i, arr) => prev + current)
   return [
     {
       type: "context",
@@ -28,7 +40,7 @@ const createMessageBlock = (
       type: "section",
       text: {
         type: "mrkdwn",
-        text: `:calendar: *実施日*\n${date}\n\n\n:books: *コース名*\n${course}`
+        text: `${formatYYYYM(date)}分の請求\n\n--------------\n\n${works.map(x => `${x.course} (${x.place}) ${x.date.join(',')}\n--- 小計 ${x.date.length}回 ${calcPrice(x.price, x.date.length).toLocaleString()}円`).join('\n\n')}\n\n--------------\n\n合計 ${totalCount}回 ${totalPrice.toLocaleString()}円`
       },
       accessory: {
         type: "image",
@@ -57,12 +69,26 @@ const findCourses = async (): Promise<Course[]> => {
   return courses;
 };
 
-export const useTimeCardCommand = (app: App) => {
-  app.command("/trs_time_card", async ({ ack, body, context, command }) => {
+const findWorks = async (userId: string, date: string): Promise<Work[]> => {
+  let works = [] as Work[];
+  try {
+    const snapShot = await firestore
+      .collection("work")
+      .where("user", "==", userId)
+      .get();
+    snapShot.forEach(d => works = [...works, d.data() as Work]);
+  } catch (e) {
+    console.error("find works post error", e);
+  }
+  // 選択した月（YYYY/MMの形式）
+  const selectMonth = date.split('-').slice(0, 2).join('-');
+  return works.filter(x => x.date.includes(selectMonth));
+};
+
+export const useInvoiceCommand = (app: App) => {
+  app.command("/trs_invoice", async ({ ack, body, context, command }) => {
     await ack();
     try {
-      const courses = await findCourses();
-
       await app.client.views.open({
         token: context.botToken,
         trigger_id: body.trigger_id,
@@ -71,7 +97,7 @@ export const useTimeCardCommand = (app: App) => {
           callback_id: VIEW_ID,
           title: {
             type: "plain_text",
-            text: "出勤を記録する"
+            text: "発行月を選択"
           },
           blocks: [
             {
@@ -79,41 +105,18 @@ export const useTimeCardCommand = (app: App) => {
               block_id: "date_block",
               label: {
                 type: "plain_text",
-                text: "実施日"
+                text: "選択した日付が含まれる月の請求書を発行します"
               },
               element: {
                 type: "datepicker",
                 action_id: "date_input",
-              }
-            },
-            {
-              type: "input",
-              block_id: "course_block",
-              label: {
-                type: "plain_text",
-                text: "コース名"
-              },
-              element: {
-                type: "static_select",
-                action_id: "course_input",
-                placeholder: {
-                  type: "plain_text",
-                  text: "コースを選択してください"
-                },
-                options: courses.map(x => ({
-                    text: {
-                      type: "plain_text",
-                      text: x.course
-                    },
-                    value: x.course
-                  }))
               }
             }
           ],
           private_metadata: command.channel_id,
           submit: {
             type: "plain_text",
-            text: "投稿"
+            text: "発行"
           }
         }
       });
@@ -127,14 +130,30 @@ export const useTimeCardCommand = (app: App) => {
     const values = view.state.values;
     const channelId = view.private_metadata;
     const date = values.date_block.date_input.selected_date;
-    const course = values.course_block.course_input.selected_option.value;
+
 
     try {
+      const userId = body.user.id;
+
+      const courses = await findCourses();
+
+      const works = await findWorks(userId, date);
+
+      const courseNames = Array.from(new Set(works.map(x => x.course)))
+
+      const fixedWorks = courseNames.map(x => ({
+        course: x,
+        date: works.filter(y => y.course === x).map(y => formatMd(y.date)),
+        place: courses.find(y => y.course === x)?.place || '',
+        price: courses.find(y => y.course === x)?.price || 0
+      }));
+
       // get user info
       const { user } = await app.client.users.info({
         token: context.botToken,
         user: body.user.id
       });
+
       // post chanel
       await app.client.chat.postMessage({
         token: context.botToken,
@@ -143,16 +162,9 @@ export const useTimeCardCommand = (app: App) => {
         blocks: createMessageBlock(
           (user as User).real_name,
           (user as User).profile.image_192,
-          date,
-          course
+          fixedWorks,
+          date
         )
-      });
-      // save data
-      await firestore.collection("work").add({
-        user: body.user.id,
-        user_name: (user as User).real_name,
-        date,
-        course
       });
     } catch (error) {
       console.error("post message error", error);
