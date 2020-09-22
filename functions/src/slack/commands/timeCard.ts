@@ -138,7 +138,7 @@ export const useTimeCardCommand = (app: App) => {
         )
       });
       // save data
-      await firestore.collection("trs").add({
+      await firestore.collection("work").add({
         user: body.user.id,
         user_name: (user as User).real_name,
         date,
