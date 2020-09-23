@@ -2,7 +2,7 @@ import { App } from "@slack/bolt";
 
 import { firestore } from "../../lib/firestore";
 import { Course, Work, User } from '../../type/common';
-import { formatMd, formatYYYYM } from "../../utils/dateUtils";
+import { formatMD, formatYYYYM } from "../../utils/dateUtils";
 
 const VIEW_ID = "dialog_invoice";
 
@@ -136,14 +136,15 @@ export const useInvoiceCommand = (app: App) => {
       const userId = body.user.id;
 
       const courses = await findCourses();
-
       const works = await findWorks(userId, date);
 
       const courseNames = Array.from(new Set(works.map(x => x.course)))
 
       const fixedWorks = courseNames.map(x => ({
         course: x,
-        date: works.filter(y => y.course === x).map(y => formatMd(y.date)),
+        date: works.filter(y => y.course === x)
+          .sort((a, b) => a.date < b.date ? 1 : -1)
+          .map(y => formatMD(y.date)),
         place: courses.find(y => y.course === x)?.place || '',
         price: courses.find(y => y.course === x)?.price || 0
       }));
@@ -151,7 +152,7 @@ export const useInvoiceCommand = (app: App) => {
       // get user info
       const { user } = await app.client.users.info({
         token: context.botToken,
-        user: body.user.id
+        user: userId
       });
 
       // post chanel

@@ -13,8 +13,8 @@ const isDate = (value: string) => {
   return dayjs(value).isValid;
 };
 
-const formatMd = (value: string) => {
-  return dayjs(value).format('M/d');
+const formatMD = (value: string) => {
+  return dayjs(value).format('M/D');
 };
 
 const formatYYYYM = (value: string) => {
@@ -24,6 +24,6 @@ const formatYYYYM = (value: string) => {
 export {
   localeNow,
   isDate,
-  formatMd,
+  formatMD,
   formatYYYYM
 };
