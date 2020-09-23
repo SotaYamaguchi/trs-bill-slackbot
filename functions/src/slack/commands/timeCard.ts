@@ -28,16 +28,8 @@ const createMessageBlock = (
       type: "section",
       text: {
         type: "mrkdwn",
-        text: `:calendar: *実施日*\n${date}\n\n\n:books: *コース名*\n${course}`
-      },
-      accessory: {
-        type: "image",
-        image_url: userIcon,
-        alt_text: "user thumbnail"
+        text: `:calendar: *実施日*\n${date}\n\n\n:books: *コース*\n${course}`
       }
-    },
-    {
-      type: "divider"
     }
   ];
 };
