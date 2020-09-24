@@ -40,7 +40,7 @@ const createMessageBlock = (
       type: "section",
       text: {
         type: "mrkdwn",
-        text: `*${formatYYYYM(date)}分の請求*\n\n--------------\n\n${works.map(x => `${x.course} (${x.place}) ${x.date.join(',')}\n--- 小計 ${x.date.length}回 ${calcPrice(x.price, x.date.length).toLocaleString()}円`).join('\n\n')}\n\n--------------\n\n合計 ${totalCount}回 ${totalPrice.toLocaleString()}円`
+        text: `*${formatYYYYM(date)}分の請求*\n\n--------------\n\n${works.map(x => `${x.course} (${x.place})\n${x.date.join(', ')}\n--- 小計 ${x.date.length}回 ${calcPrice(x.price, x.date.length).toLocaleString()}円`).join('\n\n')}\n\n--------------\n\n合計 ${totalCount}回 ${totalPrice.toLocaleString()}円`
       },
       accessory: {
         type: "image",
