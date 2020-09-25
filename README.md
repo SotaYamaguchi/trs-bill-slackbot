@@ -1,5 +1,7 @@
 # trs-bill-slackbot
 
+勤怠情報管理用のSlackBot
+
 ## Features
 
 ### command `/ping`
